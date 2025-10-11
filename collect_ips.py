@@ -3,9 +3,11 @@ from bs4 import BeautifulSoup
 import re
 import os
 
-# 目标URL列表
+# 目标URL列表（精简有效源）
 urls = [
     'https://api.uouin.com/cloudflare.html',
+    'https://www.wetest.vip/page/cloudflare/address_v4.html',
+    # 可加更多，如 'https://raw.githubusercontent.com/Mr-AoDr/sc/main/ips.txt'（纯文本 IP）
 ]
 
 # 正则表达式用于匹配IP地址
@@ -26,32 +28,23 @@ with open('ip.txt', 'w') as file:
             # 使用BeautifulSoup解析HTML
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            # 根据网站的不同结构找到包含IP地址的元素
-            if url in ['https://ip.164746.xyz/ipTop10.html', 'https://cf.090227.xyz']:
-                elements = soup.find_all('tr')
-            elif url == 'https://api.uouin.com/cloudflare.html':
-                elements = soup.find_all('div', class_='ip')
-            elif url == 'https://www.wetest.vip/page/cloudflare/address_v4.html':
-                elements = soup.find_all('p')
-            elif url == 'https://stock.hostmonit.com/CloudFlareYes':
-                # 这是一个纯文本页面，不用解析 HTML
+            # 通用解析：优先抓 td（表格），fallback 整个文本
+            elements = soup.find_all('td')
+            if not elements:
                 ip_matches = re.findall(ip_pattern, response.text)
                 for ip in ip_matches:
                     file.write(ip + '\n')
                 continue
-            else:
-                elements = soup.find_all('li')
 
             # 遍历所有元素,查找IP地址
             for element in elements:
                 element_text = element.get_text()
                 ip_matches = re.findall(ip_pattern, element_text)
-
-                # 如果找到IP地址,则写入文件
                 for ip in ip_matches:
                     file.write(ip + '\n')
 
         except Exception as e:
-            print(f"处理 {url} 时出错：{e}")
+            print(f"处理 {url} 时出错：{e}")  # 加这行，便于 Actions 日志 debug
 
 print('IP地址已保存到 ip.txt 文件中。')
+print(f'总共找到 {len(open("ip.txt").readlines())} 个 IP')  # 加计数，便于检查
